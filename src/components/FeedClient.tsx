@@ -9,6 +9,10 @@ import GarmentCard from "./GarmentCard";
 import ItemDetail from "./ItemDetail";
 import NotificationBell from "./NotificationBell";
 import { Listing } from "@/types/database";
+import GarmentCardMinimal from "./GarmentCardMinimal";
+import GarmentCardTiktok from "./GarmentCardTiktok";
+import GarmentCardSwaphaus from "./GarmentCardSwaphaus";
+
 
 export default function FeedClient({
   listings,
@@ -56,9 +60,15 @@ export default function FeedClient({
             <ChevronLeft size={18} className="text-paper" />
           </button>
           <Link href="/feed" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="SWAPHAUS" className="w-8 h-8 rounded" />
-            <span className="font-display font-bold text-paper hidden sm:inline">SWAPHAUS</span>
-          </Link>
+  <Image 
+    src="/logo.png" 
+    alt="SWAPHAUS" 
+    width={40} 
+    height={40} 
+    className="rounded" 
+  />
+  <span className="font-display font-bold text-paper hidden sm:inline">SWAPHAUS</span>
+</Link>
         </div>
 
         <div className="flex-1 mx-4">
@@ -106,28 +116,25 @@ export default function FeedClient({
         </div>
       )}
 
-      {/* Listings Grid */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {listings.length === 0 ? (
-          <div className="text-center py-12 text-paper-dim">
-            <p className="font-body">No items found. Try adjusting your search.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {listings.map((item) => (
-              <GarmentCard
-                key={item.id}
-                item={item}
-                liked={likedSet.includes(item.id)}
-                saved={savedSet.includes(item.id)}
-                likeCount={likeCounts[item.id] || 0}
-                onClick={() => setSelected(item)}
-                currentUserId={currentUserId}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Full-Screen TikTok Feed */}
+<div className="w-screen h-screen overflow-y-scroll snap-y snap-mandatory">
+  {listings.length === 0 ? (
+    <div className="w-screen h-screen flex items-center justify-center text-center text-paper-dim">
+      <p>No items found</p>
+    </div>
+  ) : (
+    listings.map((item) => (
+      <GarmentCardSwaphaus
+  key={item.id}
+  item={item}
+  liked={likedSet.includes(item.id)}
+  saved={savedSet.includes(item.id)}
+  onClick={() => setSelected(item)}
+  currentUserId={currentUserId}
+/>
+    ))
+  )}
+</div>
 
       {/* Item Detail Modal */}
       {selected && <ItemDetail item={selected} onClose={() => setSelected(null)} />}

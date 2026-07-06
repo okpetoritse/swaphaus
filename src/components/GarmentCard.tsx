@@ -1,193 +1,138 @@
 "use client";
-
 import { useState } from "react";
 import Image from "next/image";
-import {
-  Heart, MessageCircle, Share2, Bookmark, Play, BadgeCheck, Sparkles,
-} from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { Listing, CONDITION_LABELS } from "@/types/database";
+import { Heart } from "lucide-react";
+import { Listing } from "@/types/database";
 
 const MODE_STYLE = {
-  swap: { label: "Swap Only", className: "border-swap text-swap" },
-  sale: { label: "For Sale", className: "border-stamp text-stamp" },
-  both: { label: "Swap or Buy", className: "border-brass text-brass" },
+  swap: { label: "Swap Only", className: "bg-black/70 text-white border-white/30" },
+  sale: { label: "For Sale", className: "bg-black/70 text-white border-white/30" },
+  both: { label: "Swap or Buy", className: "bg-black/70 text-white border-white/30" },
 };
-
-function fmtCount(n: number) {
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  return String(n);
-}
 
 export default function GarmentCard({
   item,
   liked: initialLiked,
-  saved: initialSaved,
-  likeCount: initialLikeCount,
   onClick,
-  currentUserId,
 }: {
   item: Listing;
   liked: boolean;
-  saved: boolean;
-  likeCount: number;
   onClick: (item: Listing) => void;
-  currentUserId: string;
 }) {
   const [isLiked, setIsLiked] = useState(initialLiked);
-  const [isSaved, setIsSaved] = useState(initialSaved);
-  const [currentLikeCount, setCurrentLikeCount] = useState(initialLikeCount);
-  const [liked, setLiked] = useState(initialLiked);
-  const [likeCount, setLikeCount] = useState(initialLikeCount);
-  const [saved, setSaved] = useState(initialSaved);
-  const [burst, setBurst] = useState(false);
-  const supabase = createClient();
-  const mode = MODE_STYLE[item.mode];
+  const [imageIndex, setImageIndex] = useState(0);
 
-  async function toggleLike(forceOn = false) {
-    const nextLiked = forceOn ? true : !liked;
-    setLiked(nextLiked);
-    setLikeCount((c) => c + (nextLiked ? 1 : -1));
+  const images = item.image_urls || [];
+  const currentImage = images[imageIndex]?.trim() || null;
+  const mode = MODE_STYLE[item.mode] || MODE_STYLE.both;
 
-    if (nextLiked) {
-      await supabase.from("likes").insert({
-        user_id: currentUserId,
-        listing_id: item.id,
-      });
-    } else {
-      await supabase
-        .from("likes")
-        .delete()
-        .eq("user_id", currentUserId)
-        .eq("listing_id", item.id);
-    }
+  function toggleLike(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsLiked(!isLiked);
+    // TODO: Add your Supabase like logic here
   }
 
-  async function toggleSave() {
-    const nextSaved = !saved;
-    setSaved(nextSaved);
-    if (nextSaved) {
-      await supabase.from("saves").insert({
-        user_id: currentUserId,
-        listing_id: item.id,
-      });
-    } else {
-      await supabase
-        .from("saves")
-        .delete()
-        .eq("user_id", currentUserId)
-        .eq("listing_id", item.id);
-    }
+  function prevImage(e: React.MouseEvent) {
+    e.stopPropagation();
+    setImageIndex((i) => (i === 0 ? images.length - 1 : i - 1));
   }
 
-  function onDoubleTap() {
-    if (!liked) toggleLike(true);
-    setBurst(true);
-    setTimeout(() => setBurst(false), 650);
+  function nextImage(e: React.MouseEvent) {
+    e.stopPropagation();
+    setImageIndex((i) => (i === images.length - 1 ? 0 : i + 1));
   }
-
-  const cover = item.image_urls?.[0]?.trim() || null;
 
   return (
-    <div className="w-full rounded-card overflow-hidden border border-white/10 shadow-lg shadow-black/40 bg-ink-soft">
-      <button
-        onClick={() => onClick(item)}
-        onDoubleClick={onDoubleTap}
-        className="relative w-full text-left block"
-      >
-        <div className="relative h-72 sm:h-64 bg-ink flex items-center justify-center overflow-hidden">
-          {cover ? (
-  <Image src={cover} alt={item.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" priority />
-) : (
-            <Sparkles className="opacity-20" size={64} color="white" />
-          )}
+    <div
+      onClick={() => onClick(item)}
+      className="group w-full max-w-[280px] bg-white rounded-3xl overflow-hidden shadow-xl cursor-pointer transition-all hover:shadow-2xl"
+    >
+      {/* Image Container */}
+      <div className="relative h-[260px] bg-gradient-to-br from-[#f8e7ff] via-[#ffe4f0] to-[#e0f0ff] flex items-center justify-center overflow-hidden">
+        {currentImage ? (
+          <Image
+            src={currentImage}
+            alt={item.title}
+            fill
+            className="object-contain p-6 transition-transform group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 280px"
+          />
+        ) : (
+          <div className="text-gray-400">No image</div>
+        )}
 
+        {/* Heart Icon - Top Right */}
+        <button
+          onClick={toggleLike}
+          className="absolute top-4 right-4 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10"
+        >
+          <Heart
+            size={18}
+            className={`transition-colors ${isLiked ? "fill-red-500 text-red-500" : "text-gray-600"}`}
+          />
+        </button>
+
+        {/* Mode Badge */}
+        {item.mode && (
           <div
-            className={`absolute top-3 left-3 -rotate-3 border-2 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-widest bg-black/55 backdrop-blur-sm ${mode.className}`}
+            className={`absolute top-4 left-4 text-[10px] font-bold px-3 py-1 rounded-full border ${mode.className}`}
           >
             {mode.label}
           </div>
+        )}
 
-          {item.video_url && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white">
-              <Play size={10} fill="white" /> video
-            </div>
-          )}
-
-          {burst && (
-            <Heart
-              size={90}
-              fill="white"
-              className="absolute text-white animate-ping-once"
-            />
-          )}
-        </div>
-      </button>
-
-      <div className="p-4 bg-paper">
-        <button onClick={() => onClick(item)} className="text-left w-full">
-          <p className="text-[10px] uppercase tracking-widest text-stamp font-mono">
-            {item.brand || "Unbranded"}
-          </p>
-          <h3 className="text-lg leading-tight mt-0.5 text-ink font-body font-bold">
-            {item.title}
-          </h3>
-          <div className="mt-2 flex items-center justify-between text-xs text-ink">
-            <span className="opacity-70">
-              {item.size ? `Size ${item.size} · ` : ""}
-              {CONDITION_LABELS[item.condition]}
-            </span>
-            {item.price_usd && <span className="font-bold">${item.price_usd} USD</span>}
+        {/* Image Counter (if multiple images) */}
+        {images.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] px-2.5 py-0.5 rounded-full">
+            {imageIndex + 1} / {images.length}
           </div>
-          {item.wants_description && (
-            <p className="mt-2 text-[11px] italic opacity-70 border-t border-paper-dim pt-2 text-ink">
-              Wants: {item.wants_description}
-            </p>
-          )}
-        </button>
+        )}
 
- <div className="flex items-center justify-between text-xs px-3 py-3 border-t border-white/10 bg-ink-soft rounded-b-lg">
-  <button
-    onClick={async (e) => {
-      e.stopPropagation();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      if (liked) {
-        await supabase.from("likes").delete().eq("user_id", user.id).eq("listing_id", item.id);
-      } else {
-        await supabase.from("likes").insert({ user_id: user.id, listing_id: item.id });
-      }
-    }}
-    className="flex items-center gap-1 hover:text-stamp transition text-paper-dim hover:text-stamp"
-  >
-    <Heart size={14} fill={liked ? "currentColor" : "none"} className={liked ? "text-stamp" : ""} />
-    <span>{likeCount || 0}</span>
-  </button>
+        {/* Navigation Arrows */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prevImage}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white w-7 h-7 rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-all"
+            >
+              ←
+            </button>
+            <button
+              onClick={nextImage}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white w-7 h-7 rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-all"
+            >
+              →
+            </button>
+          </>
+        )}
+      </div>
 
-  <button className="flex items-center gap-1 hover:text-brass transition text-paper-dim hover:text-brass">
-    <MessageCircle size={14} />
-  </button>
+      {/* Content */}
+      <div className="p-5">
+        <h3 className="font-semibold text-lg text-gray-900">Men Sport Shoes</h3>
+        
+        <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+          {item.title || "This is the best shoe you can buy at this price point. It stands not..."}
+        </p>
 
-  <button className="flex items-center gap-1 hover:text-swap transition text-paper-dim hover:text-swap">
-    <Share2 size={14} />
-  </button>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <span className="text-xl font-bold text-gray-900">
+              ${item.price_usd?.toLocaleString() || "1,989"}
+            </span>
+          </div>
 
-  <button
-    onClick={async (e) => {
-      e.stopPropagation();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      if (saved) {
-        await supabase.from("saves").delete().eq("user_id", user.id).eq("listing_id", item.id);
-      } else {
-        await supabase.from("saves").insert({ user_id: user.id, listing_id: item.id });
-      }
-    }}
-    className="flex items-center gap-1 hover:text-brass transition text-paper-dim hover:text-brass"
-  >
-    <Bookmark size={14} fill={saved ? "currentColor" : "none"} className={saved ? "text-brass" : ""} />
-  </button>
-</div>
+          <button
+            className="bg-black hover:bg-gray-800 text-white px-8 py-2.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              // TODO: Handle Buy / Swap action
+              onClick(item);
+            }}
+          >
+            Buy
+          </button>
+        </div>
       </div>
     </div>
   );
